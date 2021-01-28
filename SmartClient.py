@@ -36,6 +36,28 @@ def createSocketConnection(url: str, use_https: bool):
     return s
 
 
+def send_http_request(url: str, path: str, version: str, use_https: bool) -> str:
+    """
+    Sends HTTP request to given url and returns response string
+    """
+
+    s = createSocketConnection(url, use_https)
+    request = (f"HEAD {path} HTTP/{version}\r\nHost: {url}\r\n\r\n").encode()
+    s.sendall(request)
+
+    # store into byte string
+    res = b""
+    while True:
+        try:
+            data = s.recv(4096)
+            if not data:
+                break
+            res += data
+        except socket.timeout:
+            break
+    return res.decode("uft-8")
+
+
 
 def main() -> None:
     print("Hello Main")
