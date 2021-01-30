@@ -16,7 +16,7 @@ V00728931
 
 
 
-def createSocketConnection(url: str, use_https: bool):
+def create_socket_connection(url: str, use_https: bool):
     """
     Creates a connection using given url and option to use https
     """
@@ -52,7 +52,7 @@ def send_http_request(url: str, path: str, version: str, use_https: bool) -> str
     Sends HTTP request to given url and returns response string
     """
 
-    s = createSocketConnection(url, use_https)
+    s = create_socket_connection(url, use_https)
     request = (f"HEAD {path} HTTP/{version}\r\nHost: {url}\r\n\r\n").encode()
     s.sendall(request)
 
@@ -72,14 +72,14 @@ def send_http_request(url: str, path: str, version: str, use_https: bool) -> str
             break
     return res.decode("utf-8")
 
-def getStatus(response: str):
+def get_status(response: str):
     """
     Get status code from response of a request
     """
     return int(re.search(r"^(HTTP/1.[0|1])\s(\d+)", response).group(2))
 
 
-def checkHTTPS(url: str) -> str:
+def check_https(url: str) -> str:
     """
     Determines if HTTPS is supported
     """
@@ -89,7 +89,7 @@ def checkHTTPS(url: str) -> str:
 
     # Send a request and get the response back
     response = send_http_request(loc, path, "1.1", use_https=True)
-    statusCode = getStatus(response)
+    statusCode = get_status(response)
     if statusCode in [200, 404, 503, 505]:
         return "yes", response
     else:
@@ -99,7 +99,7 @@ def checkHTTPS(url: str) -> str:
 
 
 
-def checkHttp2(url: str):
+def check_http_2(url: str):
     """
     Check if http2 is supported
     """
@@ -115,7 +115,7 @@ def checkHttp2(url: str):
    
     return secure_socket.selected_alpn_protocol() == "h2"
 
-def checkHttp1(url: str):
+def check_http_1(url: str):
     """ 
     Check if Http1.1 is supported
     """
@@ -148,32 +148,47 @@ def main() -> None:
     url = sys.argv[1]
 
 
-    supportsHttp2 = checkHttp2(url)
-    supportsHttp1 = checkHttp1(url)
-    supportsHTTPS, res = checkHTTPS(url)
+    supportsHttp2 = check_http_2(url)
+    supportsHttp1 = check_http_1(url)
+    supportsHTTPS, res = check_https(url)
 
   
-
-  
-    # print(res)
+    print()
+    print("RESPONSE HEADER")
+    print("---------------")
+    print(res)
    
-    parsedCookies= []
 
-    headers = res.split("\r\n")
-    for item in headers:
-        if "Set-Cookie" not in item:
-            continue
-        else:
-            parsedCookies.append(item)
+    def parse_cookies(res: str):
 
-  
-    print(parsedCookies)
-
+        parsedCookies= []
+        numberofCookies = 0
+        cookiedict = {}
     
+        headers = res.split("\n")
+        for item in headers:
+            if "Set-Cookie" not in item:
+                continue
+            else:
+                parsedCookies.append(item)
+                numberofCookies = numberofCookies + 1
 
-
-
-
+        # Iterate over cookies and grab name, expires if exists and domain
+        for cookie in parsedCookies:
+            cookieprintout = ""
+            splitcookie = cookie.split(";")
+            for item in splitcookie:
+                
+                if "Set-Cookie" in item:
+                    cookieprintout += "Cookie name: " + item.split(":")[1].strip()
+                    
+                if "expires" in item:
+                    cookieprintout += ", Expires: " + item.split("=")[1].strip()
+                if "domain" in item:
+                    cookieprintout += ", Domain: " + item.split("=")[1].strip()
+            print(cookieprintout)
+                
+        
     if supportsHttp1:
         supportsHttp1 = "yes"
     else:
@@ -184,11 +199,15 @@ def main() -> None:
     else:
         supportsHttp2 = "no"
 
+
+    print("Formatted Output")
+    print("----------------")
     print(f"Website: {url}")
     print(f"Supports HTTPS: {supportsHTTPS}")
     print(f"Supports http1.1: {supportsHttp1}")
     print(f"Suports http2: {supportsHttp2}")
-    print(f"Print out a list of cookies here:")
+    print(f"List of Cookies:")
+    parse_cookies(res)
 
 
 if __name__ == "__main__":
